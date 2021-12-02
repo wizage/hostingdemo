@@ -25,8 +25,20 @@ class ChannelAdmin extends Component {
             id: name,
         };
         /* Location 4 */
+        Auth.currentAuthenticatedUser().then((userInfo) => {
+            this.setState({user: userInfo});
+        });
 
         /* Location 5 */
+        try {
+        API.graphql(graphqlOperation( getChannel, input)).then((results) => {
+            if(results.data.getChannel) {
+                this.setState({ item: results.data.getChannel, newChannel: false });
+            }
+            });
+        } catch (e) {
+            console.log("Channel can't be found");
+        }
         
     }
 
@@ -50,6 +62,29 @@ class ChannelAdmin extends Component {
         console.log(item);
         if (valid){
             /* Location 6 */
+            const channelInput = {
+            id: user.username,
+            title: item.title,
+            description: item.description,
+        };
+        try {
+            if (newChannel) {
+                await API.graphql(graphqlOperation(createChannel, {input: channelInput})).then(()=>{
+                    this.displayNotification('success', 'Saved', 'Successfully created your Channel.');
+                });
+                this.setState({newChannel: false});
+                console.log('Create new channel');
+            } else {
+                await API.graphql(graphqlOperation(updateChannel, {input: channelInput})).then((result)=> {
+                    this.displayNotification('success','Saved', 'Successfully updated your Channel.');
+                });
+                this.setState({newChannel: false});
+                console.log('Updating new channel');
+            }
+            
+        } catch (err){
+            this.displayNotification('error', 'Error', `Error saving your channel, ${err.message}`);
+        }
         }
     }
 
@@ -57,6 +92,15 @@ class ChannelAdmin extends Component {
         const { newChannel, user } = this.state;
         if (!newChannel) {
             /* Location 7 */
+            try {
+        API.graphql(graphqlOperation(createStreamKey, {id: user.username})).then((results) => {
+            console.log('Create stream key');
+            this.setState({item: results.data.createStreamKey});
+            this.displayNotification('success', 'Success', 'Successfully generated your stream key.');
+            });
+        } catch (err){
+            this.displayNotification('error', 'Error', `Error saving your channel, ${err.message}`);
+        }
         } else {
             //Show error 
             this.displayNotification('error', 'Error', 'Please provide a stream title and save it before generating a stream key');
